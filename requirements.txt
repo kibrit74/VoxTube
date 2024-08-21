@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+youtube_transcript_api
+google-generativeai
+gTTS
+requests
+beautifulsoup4
+gradio
+moviepy
