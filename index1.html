@@ -368,91 +368,97 @@ button svg {
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        let player;
-        let audioPlayer;
-        let segments = [];
-        let isPlaying = false;
-        let isTranslationStarted = false;
-        let syncOffset = 0;
+document.addEventListener('DOMContentLoaded', function() {
+    let player;
+    let audioPlayer;
+    let segments = [];
+    let isPlaying = false;
+    let isTranslationStarted = false;
+    let syncOffset = 0;
 
-        const form = document.getElementById('translationForm');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const resultContainer = document.getElementById('result');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const playButton = document.getElementById('playButton');
-        const pauseButton = document.getElementById('pauseButton');
-        const volumeControl = document.getElementById('volumeControl');
-        const syncControl = document.getElementById('syncControl');
-        const syncValue = document.getElementById('syncValue');
-        const subtitlesContainer = document.getElementById('subtitlesContainer');
+    const form = document.getElementById('translationForm');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const resultContainer = document.getElementById('result');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const playButton = document.getElementById('playButton');
+    const pauseButton = document.getElementById('pauseButton');
+    const volumeControl = document.getElementById('volumeControl');
+    const syncControl = document.getElementById('syncControl');
+    const syncValue = document.getElementById('syncValue');
+    const subtitlesContainer = document.getElementById('subtitlesContainer');
+    const audioStatus = document.getElementById('audioStatus');
 
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
 
-            try {
-                showLoading();
-                const response = await fetch('/translate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(Object.fromEntries(formData))
-                });
+        try {
+            showLoading();
+            const response = await fetch('/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
 
-                if (!response.ok) {
-                    throw new Error('Çeviri işlemi başarısız oldu');
-                }
+            if (!response.ok) {
+                throw new Error('Çeviri işlemi başarısız oldu');
+            }
 
-                const data = await response.json();
-                hideLoading();
-                showSuccess('Çeviri başarıyla tamamlandı!');
-                initializePlayer(data.video_id, data.audio_data, data.segments);
-            } catch (error) {
-                hideLoading();
-                showError(error.message);
+            const data = await response.json();
+            hideLoading();
+            showSuccess('Çeviri başarıyla tamamlandı!');
+            initializePlayer(data.video_id, data.audio_data, data.segments);
+        } catch (error) {
+            hideLoading();
+            showError(error.message);
+        }
+    });
+
+    function initializePlayer(videoId, audioData, translatedSegments) {
+        segments = translatedSegments;
+        const videoContainer = document.getElementById('videoContainer');
+        videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
+        
+        player = new YT.Player('youtubeVideo', {
+            height: '360',
+            width: '640',
+            videoId: videoId,
+            events: {
+                'onReady': () => onPlayerReady(audioData),
+                'onStateChange': onPlayerStateChange
             }
         });
 
-        function initializePlayer(videoId, audioData, translatedSegments) {
-            segments = translatedSegments;
-            const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
-            
-            player = new YT.Player('youtubeVideo', {
-                height: '360',
-                width: '640',
-                videoId: videoId,
-                events: {
-                    'onReady': () => onPlayerReady(audioData),
-                    'onStateChange': onPlayerStateChange
-                }
-            });
+        resultContainer.style.display = 'block';
+    }
 
-            resultContainer.style.display = 'block';
-        }
+    function onPlayerReady(audioData) {
+        const audioBlob = base64ToBlob(audioData, 'audio/mpeg');
+        audioPlayer = new Audio(URL.createObjectURL(audioBlob));
+        
+        audioPlayer.addEventListener('loadeddata', () => {
+            audioStatus.textContent = 'Ses dosyası yüklendi';
+            isTranslationStarted = true;
+            showControls();
+            playButton.disabled = false;
+        });
 
-        function onPlayerReady(audioData) {
-            const audioBlob = base64ToBlob(audioData, 'audio/mpeg');
-            audioPlayer = new Audio(URL.createObjectURL(audioBlob));
-            
-            audioPlayer.addEventListener('loadeddata', () => {
-                document.getElementById('audioStatus').textContent = 'Ses dosyası yüklendi';
-                isTranslationStarted = true;
-                showControls();
-            });
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Ses dosyası yüklenirken hata oluştu:', e);
+            audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
+            showError('Ses dosyası yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
+        });
 
-            audioPlayer.addEventListener('error', (e) => {
-                console.error('Ses dosyası yüklenirken hata oluştu:', e);
-                document.getElementById('audioStatus').textContent = 'Ses dosyası yüklenemedi: ' + e.message;
-            });
-        }
+        audioPlayer.load();
+    }
 
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                console.log("Video playing, starting audio");
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+            console.log("Video playing, starting audio");
+            if (audioPlayer && audioPlayer.readyState >= 2) {
                 const playPromise = audioPlayer.play();
                 if (playPromise !== undefined) {
                     playPromise.then(_ => {
@@ -461,140 +467,154 @@ button svg {
                     })
                     .catch(error => {
                         console.error("Audio playback failed:", error);
+                        showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
                     });
                 }
-            } else if (event.data == YT.PlayerState.PAUSED) {
-                console.log("Pausing audio");
-                audioPlayer.pause();
-                isPlaying = false;
-            }
-        }
-
-        function showControls() {
-            document.getElementById('controls').style.display = 'flex';
-        }
-
-        playButton.addEventListener('click', function() {
-            if (isTranslationStarted) {
-                player.playVideo();
-                audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
-                audioPlayer.play();
-                isPlaying = true;
             } else {
-                alert("Çeviri henüz hazır değil. Lütfen bekleyin.");
+                console.error("Audio player is not ready");
+                showError("Ses dosyası henüz hazır değil. Lütfen biraz bekleyin ve tekrar deneyin.");
             }
-        });
+        } else if (event.data == YT.PlayerState.PAUSED) {
+            console.log("Pausing audio");
+            if (audioPlayer) {
+                audioPlayer.pause();
+            }
+            isPlaying = false;
+        }
+    }
 
-        pauseButton.addEventListener('click', function() {
+    function showControls() {
+        document.getElementById('controls').style.display = 'flex';
+    }
+
+    playButton.addEventListener('click', function() {
+        if (isTranslationStarted && audioPlayer && player) {
+            player.playVideo();
+            audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
+            audioPlayer.play().catch(e => {
+                console.error("Ses oynatma hatası:", e);
+                showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
+            });
+            isPlaying = true;
+        } else {
+            showError("Çeviri henüz hazır değil veya bir hata oluştu. Lütfen bekleyin veya sayfayı yenileyin.");
+        }
+    });
+
+    pauseButton.addEventListener('click', function() {
+        if (player && audioPlayer) {
             player.pauseVideo();
             audioPlayer.pause();
             isPlaying = false;
-        });
-
-        setInterval(function() {
-            if (isPlaying) {
-                const videoDuration = player.getDuration();
-                const videoCurrentTime = player.getCurrentTime();
-                const audioDuration = audioPlayer.duration;
-                if (videoCurrentTime >= videoDuration || audioPlayer.currentTime >= audioDuration) {
-                    player.pauseVideo();
-                    audioPlayer.pause();
-                    isPlaying = false;
-                } else {
-                    const timeDiff = Math.abs(videoCurrentTime - (audioPlayer.currentTime - syncOffset));
-                    if (timeDiff > 0.5) {
-                        audioPlayer.currentTime = videoCurrentTime + syncOffset;
-                    }
-                }
-                updateSubtitles(videoCurrentTime);
-            }
-        }, 100);
-
-        volumeControl.addEventListener('input', function(e) {
-            audioPlayer.volume = e.target.value;
-        });
-
-syncControl.addEventListener('input', function(e) {
-            syncOffset = parseFloat(e.target.value);
-            syncValue.textContent = syncOffset.toFixed(1);
-            if (isPlaying) {
-                audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
-            }
-        });
-
-        function updateSubtitles(currentTime) {
-            let currentSegment = segments.find(seg => seg.start <= currentTime && seg.end > currentTime);
-            if (currentSegment) {
-                subtitlesContainer.textContent = currentSegment.text;
-                subtitlesContainer.setAttribute('aria-label', `Altyazı: ${currentSegment.text}`);
-            } else {
-                subtitlesContainer.textContent = '';
-                subtitlesContainer.setAttribute('aria-label', 'Altyazı yok');
-            }
         }
-
-        function base64ToBlob(base64, mimeType) {
-            const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            return new Blob([byteArray], {type: mimeType});
-        }
-
-        function showLoading() {
-            loadingIndicator.style.display = 'block';
-            form.style.display = 'none';
-        }
-
-        function hideLoading() {
-            loadingIndicator.style.display = 'none';
-            form.style.display = 'block';
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            errorMessage.classList.add('fade-in');
-            setTimeout(() => {
-                errorMessage.classList.remove('fade-in');
-                errorMessage.style.display = 'none';
-            }, 5000);
-        }
-
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            successMessage.classList.add('fade-in');
-            setTimeout(() => {
-                successMessage.classList.remove('fade-in');
-                successMessage.style.display = 'none';
-            }, 3000);
-        }
-
-        // Ek bilgi kutusu ekleme
-        const infoBox = document.createElement('div');
-        infoBox.className = 'info-box fade-in';
-        infoBox.innerHTML = `
-            <h3>
-                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                Senkronizasyon İpuçları
-            </h3>
-            <p>Ses ve video senkronizasyonunu ayarlamak için:</p>
-            <ul>
-                <li>Senkronizasyon kaydırıcısını kullanın</li>
-                <li>Pozitif değerler sesi ileriye alır</li>
-                <li>Negatif değerler sesi geriye alır</li>
-                <li>En iyi sonuç için küçük ayarlamalar yapın</li>
-            </ul>
-        `;
-        document.querySelector('.container').insertBefore(infoBox, resultContainer);
     });
-    </script>
+
+    setInterval(function() {
+        if (isPlaying && player && audioPlayer) {
+            const videoDuration = player.getDuration();
+            const videoCurrentTime = player.getCurrentTime();
+            const audioDuration = audioPlayer.duration;
+            if (videoCurrentTime >= videoDuration || audioPlayer.currentTime >= audioDuration) {
+                player.pauseVideo();
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                const timeDiff = Math.abs(videoCurrentTime - (audioPlayer.currentTime - syncOffset));
+                if (timeDiff > 0.5) {
+                    audioPlayer.currentTime = videoCurrentTime + syncOffset;
+                }
+            }
+            updateSubtitles(videoCurrentTime);
+        }
+    }, 100);
+
+    volumeControl.addEventListener('input', function(e) {
+        if (audioPlayer) {
+            audioPlayer.volume = e.target.value;
+        }
+    });
+
+    syncControl.addEventListener('input', function(e) {
+        syncOffset = parseFloat(e.target.value);
+        syncValue.textContent = syncOffset.toFixed(1);
+        if (isPlaying && player && audioPlayer) {
+            audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
+        }
+    });
+
+    function updateSubtitles(currentTime) {
+        let currentSegment = segments.find(seg => seg.start <= currentTime && seg.end > currentTime);
+        if (currentSegment) {
+            subtitlesContainer.textContent = currentSegment.text;
+            subtitlesContainer.setAttribute('aria-label', `Altyazı: ${currentSegment.text}`);
+        } else {
+            subtitlesContainer.textContent = '';
+            subtitlesContainer.setAttribute('aria-label', 'Altyazı yok');
+        }
+    }
+
+    function base64ToBlob(base64, mimeType) {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], {type: mimeType});
+    }
+
+    function showLoading() {
+        loadingIndicator.style.display = 'block';
+        form.style.display = 'none';
+    }
+
+    function hideLoading() {
+        loadingIndicator.style.display = 'none';
+        form.style.display = 'block';
+    }
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        errorMessage.classList.add('fade-in');
+        setTimeout(() => {
+            errorMessage.classList.remove('fade-in');
+            errorMessage.style.display = 'none';
+        }, 5000);
+    }
+
+    function showSuccess(message) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+        successMessage.classList.add('fade-in');
+        setTimeout(() => {
+            successMessage.classList.remove('fade-in');
+            successMessage.style.display = 'none';
+        }, 3000);
+    }
+
+    // Senkronizasyon ipuçları ekleme
+    const infoBox = document.createElement('div');
+    infoBox.className = 'info-box fade-in';
+    infoBox.innerHTML = `
+        <h3>
+            <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Senkronizasyon İpuçları
+        </h3>
+        <p>Ses ve video senkronizasyonunu ayarlamak için:</p>
+        <ul>
+            <li>Senkronizasyon kaydırıcısını kullanın</li>
+            <li>Pozitif değerler sesi ileriye alır</li>
+            <li>Negatif değerler sesi geriye alır</li>
+            <li>En iyi sonuç için küçük ayarlamalar yapın</li>
+        </ul>
+    `;
+    document.querySelector('.container').insertBefore(infoBox, resultContainer);
+});
+</script>
 </body>
 </html>        
