@@ -13,14 +13,14 @@
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
             background: #fff;
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        h1 {
+        h1, h2 {
             text-align: center;
             color: #333;
         }
@@ -66,6 +66,10 @@
             margin-top: 20px;
             display: none;
         }
+        #videoPlayer, #audioPlayer {
+            width: 100%;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -86,6 +90,12 @@
         <div id="result">
             <h2>Çeviri Sonucu</h2>
             <div id="translatedContent"></div>
+            <video id="videoPlayer" controls>
+                Video yüklenemedi.
+            </video>
+            <audio id="audioPlayer" controls>
+                Ses yüklenemedi.
+            </audio>
         </div>
     </div>
 
@@ -95,6 +105,8 @@
         const message = document.getElementById('message');
         const result = document.getElementById('result');
         const translatedContent = document.getElementById('translatedContent');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const audioPlayer = document.getElementById('audioPlayer');
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -126,7 +138,7 @@
                 
                 if (data.status === 'completed') {
                     showMessage('Çeviri tamamlandı!', 'success');
-                    displayResult(data.translated_text);
+                    displayResult(data);
                 } else {
                     showMessage('Çeviri beklemede. Lütfen daha sonra tekrar deneyin.', 'success');
                 }
@@ -141,8 +153,23 @@
             message.style.display = 'block';
         }
 
-        function displayResult(translatedText) {
-            translatedContent.textContent = translatedText;
+        function displayResult(data) {
+            translatedContent.textContent = data.translated_text || 'Çevrilmiş metin bulunamadı.';
+            
+            if (data.video_url) {
+                videoPlayer.src = data.video_url;
+                videoPlayer.style.display = 'block';
+            } else {
+                videoPlayer.style.display = 'none';
+            }
+
+            if (data.audio_url) {
+                audioPlayer.src = data.audio_url;
+                audioPlayer.style.display = 'block';
+            } else {
+                audioPlayer.style.display = 'none';
+            }
+
             result.style.display = 'block';
         }
     });
