@@ -5,14 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoxTube - Video Çeviri Uygulaması</title>
     <style>
-        /* Önceki CSS kodları aynen kalacak */
+        /* Önceki CSS stilleri burada kalacak */
     </style>
 </head>
 <body>
     <div class="container">
         <h1>VoxTube</h1>
 
-        <!-- Önceki info-box'lar ve form aynen kalacak -->
+        <div class="info-box fade-in">
+            <h3>
+                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Bu Uygulama Nedir?
+            </h3>
+            <p>
+                Bu uygulama, <strong>yapay zeka teknolojisi</strong> kullanarak YouTube videolarının içeriğini Türkçe'ye çevirir ve seslendirir. Gelişmiş <strong>doğal dil işleme</strong> sayesinde, videolar için transkript oluşturur, bu transkripti Türkçe'ye çevirir ve son olarak çeviriyi sesli olarak okur.
+            </p>
+            <h4>Çoklu Dil Desteği</h4>
+            <p>
+                Uygulamamız <strong>herhangi bir dildeki</strong> YouTube videolarını Türkçe'ye çevirebilir. Yapay zeka modelimiz, videonun orijinal dilini otomatik olarak algılar ve Türkçe'ye çevirir. Bu özellik sayesinde, dünya çapındaki içeriklere Türkçe olarak erişebilirsiniz.
+            </p>
+        </div>
+        
+        <div class="info-box fade-in">
+            <h3>
+                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Nasıl Kullanılır?
+            </h3>
+            <ol>
+                <li>YouTube video URL'sini girin.</li>
+                <li>Video transkriptini yapıştırın. 
+                    <strong>Önemli Not (Mobil Cihazlar İçin):</strong> Mobil cihazlarda kullanıyorsanız, çeviri yapılacak videonun transkriptini kopyalamak için videoyu paylaş butonuna basarak videoyu tarayıcıda açmanız gerekmektedir. YouTube mobil uygulaması üzerinden transkript kopyalama imkanı bulunmamaktadır!</li>
+                <li>"Çeviriyi Başlat" düğmesine tıklayın.</li>
+                <li>Çeviri tamamlandığında, videoyu oynatın ve çevrilmiş sesi dinleyin.</li>
+            </ol>
+        </div>
+        
+        <form id="translationForm">
+            <label for="video_url">Video URL:</label>
+            <input type="text" id="video_url" name="video_url" required aria-describedby="urlHint">
+            <small id="urlHint">YouTube video URL'sini girin</small>
+            
+            <label for="transcript">Video Transkripti (YouTube formatı):</label>
+            <textarea id="transcript" name="transcript" rows="10" required aria-describedby="transcriptHint"></textarea>
+            <small id="transcriptHint">Lütfen YouTube'dan kopyaladığınız transkripti olduğu gibi yapıştırın. Transkripti kopyalarken zaman damgasını da kopyaladığınızdan emin olunuz.</small>
+            
+            <input type="submit" value="Çeviriyi Başlat">
+        </form>
 
         <div id="errorMessage" role="alert" aria-live="assertive"></div>
         <div id="successMessage" role="status" aria-live="polite"></div>
@@ -261,7 +307,7 @@
             errorMessage.style.display = 'block';
             errorMessage.classList.add('fade-in');
             setTimeout(() => {
-                errorMessage.classList.remove('fade-in');
+            errorMessage.classList.remove('fade-in');
                 errorMessage.style.display = 'none';
             }, 5000);
         }
@@ -301,3 +347,4 @@
     </script>
 </body>
 </html>
+                       
