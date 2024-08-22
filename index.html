@@ -6,41 +6,60 @@
     <title>VoxTube - Video Çeviri Uygulaması</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #f0f2f5;
         }
         .container {
-            background-color: #f4f4f4;
-            padding: 20px;
-            border-radius: 5px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         h1 {
             color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
         }
         .info-box {
             background-color: #e8f4f8;
             border-left: 5px solid #3498db;
             padding: 15px;
             margin-bottom: 20px;
+            border-radius: 4px;
         }
         form {
             margin-bottom: 20px;
         }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
         input[type="text"], textarea {
             width: 100%;
             padding: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
         input[type="submit"] {
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 20px;
             cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #2980b9;
         }
         #loadingIndicator, #result {
             display: none;
@@ -52,20 +71,38 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #errorMessage, #waitingMessage {
+        #errorMessage {
             color: #e74c3c;
             font-weight: bold;
             margin-top: 10px;
+            padding: 10px;
+            background-color: #fce4e4;
+            border-radius: 4px;
+            display: none;
         }
-        #successMessage {
-            color: #2ecc71;
+        #waitingMessage {
+            color: #f39c12;
             font-weight: bold;
             margin-top: 10px;
+            padding: 10px;
+            background-color: #fef5e7;
+            border-radius: 4px;
+            display: none;
+        }
+        #successMessage {
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9f7ef;
+            border-radius: 4px;
+            display: none;
         }
     </style>
 </head>
@@ -75,7 +112,7 @@
         
         <div class="info-box">
             <h3>Bu Uygulama Nedir?</h3>
-            <p>Bu uygulama, YouTube videolarının içeriğini Türkçe'ye çevirir ve seslendirir.</p>
+            <p>VoxTube, YouTube videolarının içeriğini Türkçe'ye çeviren ve seslendiren yenilikçi bir uygulamadır.</p>
         </div>
         
         <div class="info-box">
@@ -90,10 +127,10 @@
         
         <form id="translationForm">
             <label for="video_url">Video URL:</label>
-            <input type="text" id="video_url" name="video_url" required>
+            <input type="text" id="video_url" name="video_url" required pattern="https?://.*" placeholder="https://www.youtube.com/watch?v=...">
             
             <label for="transcript">Video Transkripti:</label>
-            <textarea id="transcript" name="transcript" rows="10" required></textarea>
+            <textarea id="transcript" name="transcript" rows="10" required minlength="10" placeholder="Video transkriptini buraya yapıştırın..."></textarea>
             
             <input type="submit" value="Çeviriyi Başlat">
         </form>
@@ -125,6 +162,21 @@
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Form verilerini doğrula
+            const videoUrl = document.getElementById('video_url').value.trim();
+            const transcript = document.getElementById('transcript').value.trim();
+
+            if (!isValidUrl(videoUrl)) {
+                showMessage('error', 'Lütfen geçerli bir YouTube video URL'si girin.');
+                return;
+            }
+
+            if (transcript.length < 10) {
+                showMessage('error', 'Transkript en az 10 karakter uzunluğunda olmalıdır.');
+                return;
+            }
+
             const formData = new FormData(this);
 
             try {
@@ -135,31 +187,48 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Çeviri işlemi başarısız oldu');
+                    throw new Error(await getErrorMessage(response));
                 }
 
                 const data = await response.json();
                 
                 if (data.status === 'waiting') {
                     hideLoading();
-                    showWaiting('Çeviri henüz hazır değil. Lütfen bekleyin.');
+                    showMessage('waiting', 'Çeviri henüz hazır değil. Lütfen bekleyin.');
                 } else if (data.status === 'completed') {
                     hideLoading();
-                    showSuccess('Çeviri başarıyla tamamlandı!');
+                    showMessage('success', 'Çeviri başarıyla tamamlandı!');
                     displayResult(data);
+                } else {
+                    throw new Error('Beklenmeyen bir durum oluştu.');
                 }
             } catch (error) {
                 hideLoading();
-                showError(error.message);
+                showMessage('error', error.message);
             }
         });
+
+        function isValidUrl(url) {
+            try {
+                new URL(url);
+                return url.includes('youtube.com') || url.includes('youtu.be');
+            } catch {
+                return false;
+            }
+        }
+
+        async function getErrorMessage(response) {
+            if (response.status === 422) {
+                const errorData = await response.json();
+                return errorData.detail || 'Gönderilen veriler işlenemedi. Lütfen girişlerinizi kontrol edin.';
+            }
+            return 'Çeviri işlemi başarısız oldu. Lütfen daha sonra tekrar deneyin.';
+        }
 
         function showLoading() {
             loadingIndicator.style.display = 'block';
             form.style.display = 'none';
-            errorMessage.style.display = 'none';
-            waitingMessage.style.display = 'none';
-            successMessage.style.display = 'none';
+            hideAllMessages();
         }
 
         function hideLoading() {
@@ -167,25 +236,25 @@
             form.style.display = 'block';
         }
 
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
+        function showMessage(type, message) {
+            hideAllMessages();
+            const messageElement = document.getElementById(`${type}Message`);
+            messageElement.textContent = message;
+            messageElement.style.display = 'block';
         }
 
-        function showWaiting(message) {
-            waitingMessage.textContent = message;
-            waitingMessage.style.display = 'block';
-        }
-
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
+        function hideAllMessages() {
+            errorMessage.style.display = 'none';
+            waitingMessage.style.display = 'none';
+            successMessage.style.display = 'none';
         }
 
         function displayResult(data) {
-            // Bu fonksiyon, çeviri tamamlandığında sonuçları göstermek için kullanılacak
             resultContainer.style.display = 'block';
             // Burada video ve ses oynatıcıları eklenebilir
+            // Örnek:
+            // videoContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${data.videoId}" frameborder="0" allowfullscreen></iframe>`;
+            // audioContainer.innerHTML = `<audio controls><source src="${data.audioUrl}" type="audio/mpeg"></audio>`;
         }
     });
     </script>
