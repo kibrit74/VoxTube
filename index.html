@@ -5,44 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoxTube - Video Çeviri Uygulaması</title>
     <style>
-        /* Önceki CSS stilleri burada kalacak */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 5px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        input[type="submit"] {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #loadingIndicator, #result {
+            display: none;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #errorMessage, #waitingMessage {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        #successMessage {
+            color: #2ecc71;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>VoxTube</h1>
-
-        <div class="info-box fade-in">
-            <h3>
-                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                Bu Uygulama Nedir?
-            </h3>
-            <p>
-                Bu uygulama, <strong>yapay zeka teknolojisi</strong> kullanarak YouTube videolarının içeriğini Türkçe'ye çevirir ve seslendirir. Gelişmiş <strong>doğal dil işleme</strong> sayesinde, videolar için transkript oluşturur, bu transkripti Türkçe'ye çevirir ve son olarak çeviriyi sesli olarak okur.
-            </p>
-            <h4>Çoklu Dil Desteği</h4>
-            <p>
-                Uygulamamız <strong>herhangi bir dildeki</strong> YouTube videolarını Türkçe'ye çevirebilir. Yapay zeka modelimiz, videonun orijinal dilini otomatik olarak algılar ve Türkçe'ye çevirir. Bu özellik sayesinde, dünya çapındaki içeriklere Türkçe olarak erişebilirsiniz.
-            </p>
+        
+        <div class="info-box">
+            <h3>Bu Uygulama Nedir?</h3>
+            <p>Bu uygulama, YouTube videolarının içeriğini Türkçe'ye çevirir ve seslendirir.</p>
         </div>
         
-        <div class="info-box fade-in">
-            <h3>
-                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                Nasıl Kullanılır?
-            </h3>
+        <div class="info-box">
+            <h3>Nasıl Kullanılır?</h3>
             <ol>
                 <li>YouTube video URL'sini girin.</li>
-                <li>Video transkriptini yapıştırın. 
-                    <strong>Önemli Not (Mobil Cihazlar İçin):</strong> Mobil cihazlarda kullanıyorsanız, çeviri yapılacak videonun transkriptini kopyalamak için videoyu paylaş butonuna basarak videoyu tarayıcıda açmanız gerekmektedir. YouTube mobil uygulaması üzerinden transkript kopyalama imkanı bulunmamaktadır!</li>
+                <li>Video transkriptini yapıştırın.</li>
                 <li>"Çeviriyi Başlat" düğmesine tıklayın.</li>
                 <li>Çeviri tamamlandığında, videoyu oynatın ve çevrilmiş sesi dinleyin.</li>
             </ol>
@@ -50,81 +90,38 @@
         
         <form id="translationForm">
             <label for="video_url">Video URL:</label>
-            <input type="text" id="video_url" name="video_url" required aria-describedby="urlHint">
-            <small id="urlHint">YouTube video URL'sini girin</small>
+            <input type="text" id="video_url" name="video_url" required>
             
-            <label for="transcript">Video Transkripti (YouTube formatı):</label>
-            <textarea id="transcript" name="transcript" rows="10" required aria-describedby="transcriptHint"></textarea>
-            <small id="transcriptHint">Lütfen YouTube'dan kopyaladığınız transkripti olduğu gibi yapıştırın. Transkripti kopyalarken zaman damgasını da kopyaladığınızdan emin olunuz.</small>
+            <label for="transcript">Video Transkripti:</label>
+            <textarea id="transcript" name="transcript" rows="10" required></textarea>
             
             <input type="submit" value="Çeviriyi Başlat">
         </form>
 
-        <div id="errorMessage" role="alert" aria-live="assertive"></div>
-        <div id="successMessage" role="status" aria-live="polite"></div>
+        <div id="errorMessage"></div>
+        <div id="waitingMessage"></div>
+        <div id="successMessage"></div>
 
-        <div id="loadingIndicator" aria-live="polite">
+        <div id="loadingIndicator">
             <div class="spinner"></div>
             <p>Çeviri işlemi devam ediyor...</p>
         </div>
 
-        <div id="result" style="display:none;">
+        <div id="result">
             <h2>Çeviri Sonucu</h2>
-            <div class="video-container">
-                <div id="videoContainer" aria-live="polite">
-                    <!-- Video buraya yüklenecek -->
-                </div>
-            </div>
-            <div id="audioContainer">
-                <!-- Ses kontrolü buraya eklenecek -->
-            </div>
-            <p id="audioStatus" aria-live="polite"></p>
-            <div id="controls">
-                <button id="playButton" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    Oynat
-                </button>
-                <button id="pauseButton">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="6" y="4" width="4" height="16"></rect>
-                        <rect x="14" y="4" width="4" height="16"></rect>
-                    </svg>
-                    Duraklat
-                </button>
-                <label for="volumeControl">Ses Seviyesi:</label>
-                <input type="range" id="volumeControl" min="0" max="1" step="0.1" value="1">
-                <label for="syncControl">Ses Senkronizasyonu (saniye):</label>
-                <input type="range" id="syncControl" min="-5" max="5" step="0.1" value="0">
-                <span id="syncValue">0</span>
-            </div>
-            <div id="subtitlesContainer" aria-live="polite" role="region" aria-label="Altyazılar"></div>
+            <div id="videoContainer"></div>
+            <div id="audioContainer"></div>
         </div>
     </div>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        let player;
-        let audioPlayer;
-        let segments = [];
-        let isPlaying = false;
-        let isTranslationStarted = false;
-        let syncOffset = 0;
-
         const form = document.getElementById('translationForm');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const resultContainer = document.getElementById('result');
         const errorMessage = document.getElementById('errorMessage');
+        const waitingMessage = document.getElementById('waitingMessage');
         const successMessage = document.getElementById('successMessage');
-        const playButton = document.getElementById('playButton');
-        const pauseButton = document.getElementById('pauseButton');
-        const volumeControl = document.getElementById('volumeControl');
-        const syncControl = document.getElementById('syncControl');
-        const syncValue = document.getElementById('syncValue');
-        const subtitlesContainer = document.getElementById('subtitlesContainer');
-        const audioStatus = document.getElementById('audioStatus');
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -134,10 +131,7 @@
                 showLoading();
                 const response = await fetch('/translate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(Object.fromEntries(formData))
+                    body: formData
                 });
 
                 if (!response.ok) {
@@ -145,156 +139,27 @@
                 }
 
                 const data = await response.json();
-                hideLoading();
-                showSuccess('Çeviri başarıyla tamamlandı!');
-                initializePlayer(data.video_id, data.audio_data, data.segments);
+                
+                if (data.status === 'waiting') {
+                    hideLoading();
+                    showWaiting('Çeviri henüz hazır değil. Lütfen bekleyin.');
+                } else if (data.status === 'completed') {
+                    hideLoading();
+                    showSuccess('Çeviri başarıyla tamamlandı!');
+                    displayResult(data);
+                }
             } catch (error) {
                 hideLoading();
                 showError(error.message);
             }
         });
 
-        function initializePlayer(videoId, audioData, translatedSegments) {
-            segments = translatedSegments;
-            const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
-            
-            player = new YT.Player('youtubeVideo', {
-                height: '360',
-                width: '640',
-                videoId: videoId,
-                events: {
-                    'onReady': () => onPlayerReady(audioData),
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-
-            resultContainer.style.display = 'block';
-            isTranslationStarted = true;
-        }
-
-        function onPlayerReady(audioData) {
-            const audioBlob = base64ToBlob(audioData, 'audio/mpeg');
-            audioPlayer = new Audio(URL.createObjectURL(audioBlob));
-            
-            audioPlayer.addEventListener('loadeddata', () => {
-                audioStatus.textContent = 'Ses dosyası yüklendi';
-                showControls();
-                playButton.disabled = false;
-            });
-
-            audioPlayer.addEventListener('error', (e) => {
-                console.error('Ses dosyası yüklenirken hata oluştu:', e);
-                audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
-                isTranslationStarted = false;
-                showError('Ses dosyası yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
-            });
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                console.log("Video playing, starting audio");
-                const playPromise = audioPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(_ => {
-                        isPlaying = true;
-                        console.log("Audio playback started successfully");
-                    })
-                    .catch(error => {
-                        console.error("Audio playback failed:", error);
-                        showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
-                    });
-                }
-            } else if (event.data == YT.PlayerState.PAUSED) {
-                console.log("Pausing audio");
-                audioPlayer.pause();
-                isPlaying = false;
-            }
-        }
-
-        function showControls() {
-            document.getElementById('controls').style.display = 'flex';
-        }
-
-        playButton.addEventListener('click', function() {
-            if (isTranslationStarted && audioPlayer && player) {
-                player.playVideo();
-                audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
-                audioPlayer.play().catch(e => {
-                    console.error("Ses oynatma hatası:", e);
-                    showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
-                });
-                isPlaying = true;
-            } else {
-                showError("Çeviri henüz hazır değil veya bir hata oluştu. Lütfen bekleyin veya sayfayı yenileyin.");
-            }
-        });
-
-        pauseButton.addEventListener('click', function() {
-            if (player && audioPlayer) {
-                player.pauseVideo();
-                audioPlayer.pause();
-                isPlaying = false;
-            }
-        });
-
-        setInterval(function() {
-            if (isPlaying && player && audioPlayer) {
-                const videoDuration = player.getDuration();
-                const videoCurrentTime = player.getCurrentTime();
-                const audioDuration = audioPlayer.duration;
-                if (videoCurrentTime >= videoDuration || audioPlayer.currentTime >= audioDuration) {
-                    player.pauseVideo();
-                    audioPlayer.pause();
-                    isPlaying = false;
-                } else {
-                    const timeDiff = Math.abs(videoCurrentTime - (audioPlayer.currentTime - syncOffset));
-                    if (timeDiff > 0.5) {
-                        audioPlayer.currentTime = videoCurrentTime + syncOffset;
-                    }
-                }
-                updateSubtitles(videoCurrentTime);
-            }
-        }, 100);
-
-        volumeControl.addEventListener('input', function(e) {
-            if (audioPlayer) {
-                audioPlayer.volume = e.target.value;
-            }
-        });
-
-        syncControl.addEventListener('input', function(e) {
-            syncOffset = parseFloat(e.target.value);
-            syncValue.textContent = syncOffset.toFixed(1);
-            if (isPlaying && player && audioPlayer) {
-                audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
-            }
-        });
-
-        function updateSubtitles(currentTime) {
-            let currentSegment = segments.find(seg => seg.start <= currentTime && seg.end > currentTime);
-            if (currentSegment) {
-                subtitlesContainer.textContent = currentSegment.text;
-                subtitlesContainer.setAttribute('aria-label', `Altyazı: ${currentSegment.text}`);
-            } else {
-                subtitlesContainer.textContent = '';
-                subtitlesContainer.setAttribute('aria-label', 'Altyazı yok');
-            }
-        }
-
-        function base64ToBlob(base64, mimeType) {
-            const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            return new Blob([byteArray], {type: mimeType});
-        }
-
         function showLoading() {
             loadingIndicator.style.display = 'block';
             form.style.display = 'none';
+            errorMessage.style.display = 'none';
+            waitingMessage.style.display = 'none';
+            successMessage.style.display = 'none';
         }
 
         function hideLoading() {
@@ -305,46 +170,24 @@
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
-            errorMessage.classList.add('fade-in');
-            setTimeout(() => {
-            errorMessage.classList.remove('fade-in');
-                errorMessage.style.display = 'none';
-            }, 5000);
+        }
+
+        function showWaiting(message) {
+            waitingMessage.textContent = message;
+            waitingMessage.style.display = 'block';
         }
 
         function showSuccess(message) {
             successMessage.textContent = message;
             successMessage.style.display = 'block';
-            successMessage.classList.add('fade-in');
-            setTimeout(() => {
-                successMessage.classList.remove('fade-in');
-                successMessage.style.display = 'none';
-            }, 3000);
         }
 
-        // Senkronizasyon ipuçları ekleme
-        const infoBox = document.createElement('div');
-        infoBox.className = 'info-box fade-in';
-        infoBox.innerHTML = `
-            <h3>
-                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                Senkronizasyon İpuçları
-            </h3>
-            <p>Ses ve video senkronizasyonunu ayarlamak için:</p>
-            <ul>
-                <li>Senkronizasyon kaydırıcısını kullanın</li>
-                <li>Pozitif değerler sesi ileriye alır</li>
-                <li>Negatif değerler sesi geriye alır</li>
-                <li>En iyi sonuç için küçük ayarlamalar yapın</li>
-            </ul>
-        `;
-        document.querySelector('.container').insertBefore(infoBox, resultContainer);
+        function displayResult(data) {
+            // Bu fonksiyon, çeviri tamamlandığında sonuçları göstermek için kullanılacak
+            resultContainer.style.display = 'block';
+            // Burada video ve ses oynatıcıları eklenebilir
+        }
     });
     </script>
 </body>
 </html>
-                       
