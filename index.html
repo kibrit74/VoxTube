@@ -367,7 +367,7 @@ button svg {
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script>
+  <script>
 document.addEventListener('DOMContentLoaded', function() {
     let player;
     let audioPlayer;
@@ -444,6 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isTranslationStarted = true;
             showControls();
             playButton.disabled = false;
+            pauseButton.disabled = false;
         });
 
         audioPlayer.addEventListener('error', (e) => {
@@ -457,29 +458,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function onPlayerStateChange(event) {
         if (event.data == YT.PlayerState.PLAYING) {
-            console.log("Video playing, starting audio");
-            if (audioPlayer && audioPlayer.readyState >= 2) {
-                const playPromise = audioPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(_ => {
-                        isPlaying = true;
-                        console.log("Audio playback started successfully");
-                    })
-                    .catch(error => {
-                        console.error("Audio playback failed:", error);
-                        showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
-                    });
-                }
-            } else {
-                console.error("Audio player is not ready");
-                showError("Ses dosyası henüz hazır değil. Lütfen biraz bekleyin ve tekrar deneyin.");
-            }
+            playAudio();
         } else if (event.data == YT.PlayerState.PAUSED) {
-            console.log("Pausing audio");
-            if (audioPlayer) {
-                audioPlayer.pause();
-            }
-            isPlaying = false;
+            pauseAudio();
         }
     }
 
@@ -488,14 +469,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     playButton.addEventListener('click', function() {
-        if (isTranslationStarted && audioPlayer && player) {
+        if (isTranslationStarted && player && audioPlayer) {
             player.playVideo();
-            audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
-            audioPlayer.play().catch(e => {
-                console.error("Ses oynatma hatası:", e);
-                showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
-            });
-            isPlaying = true;
+            playAudio();
         } else {
             showError("Çeviri henüz hazır değil veya bir hata oluştu. Lütfen bekleyin veya sayfayı yenileyin.");
         }
@@ -504,25 +480,39 @@ document.addEventListener('DOMContentLoaded', function() {
     pauseButton.addEventListener('click', function() {
         if (player && audioPlayer) {
             player.pauseVideo();
-            audioPlayer.pause();
-            isPlaying = false;
+            pauseAudio();
         }
     });
 
+    function playAudio() {
+        if (audioPlayer) {
+            audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
+            const playPromise = audioPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    isPlaying = true;
+                    console.log("Audio playback started successfully");
+                }).catch(error => {
+                    console.error("Audio playback failed:", error);
+                    showError("Ses oynatılırken bir hata oluştu. Lütfen tekrar deneyin.");
+                });
+            }
+        }
+    }
+
+    function pauseAudio() {
+        if (audioPlayer) {
+            audioPlayer.pause();
+            isPlaying = false;
+        }
+    }
+
     setInterval(function() {
         if (isPlaying && player && audioPlayer) {
-            const videoDuration = player.getDuration();
             const videoCurrentTime = player.getCurrentTime();
-            const audioDuration = audioPlayer.duration;
-            if (videoCurrentTime >= videoDuration || audioPlayer.currentTime >= audioDuration) {
-                player.pauseVideo();
-                audioPlayer.pause();
-                isPlaying = false;
-            } else {
-                const timeDiff = Math.abs(videoCurrentTime - (audioPlayer.currentTime - syncOffset));
-                if (timeDiff > 0.5) {
-                    audioPlayer.currentTime = videoCurrentTime + syncOffset;
-                }
+            const timeDiff = Math.abs(videoCurrentTime - (audioPlayer.currentTime - syncOffset));
+            if (timeDiff > 0.5) {
+                audioPlayer.currentTime = videoCurrentTime + syncOffset;
             }
             updateSubtitles(videoCurrentTime);
         }
@@ -592,28 +582,6 @@ document.addEventListener('DOMContentLoaded', function() {
             successMessage.style.display = 'none';
         }, 3000);
     }
-
-    // Senkronizasyon ipuçları ekleme
-    const infoBox = document.createElement('div');
-    infoBox.className = 'info-box fade-in';
-    infoBox.innerHTML = `
-        <h3>
-            <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            Senkronizasyon İpuçları
-        </h3>
-        <p>Ses ve video senkronizasyonunu ayarlamak için:</p>
-        <ul>
-            <li>Senkronizasyon kaydırıcısını kullanın</li>
-            <li>Pozitif değerler sesi ileriye alır</li>
-            <li>Negatif değerler sesi geriye alır</li>
-            <li>En iyi sonuç için küçük ayarlamalar yapın</li>
-        </ul>
-    `;
-    document.querySelector('.container').insertBefore(infoBox, resultContainer);
 });
 </script>
 </body>
