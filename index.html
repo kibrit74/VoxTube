@@ -274,7 +274,13 @@
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-   document.addEventListener('DOMContentLoaded', function() {
+   // YouTube IFrame API'sini yükle
+let tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+let firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('translationForm');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const resultContainer = document.getElementById('result');
@@ -318,7 +324,7 @@
 
             hideLoading();
             showSuccess('Çeviri başarıyla tamamlandı!');
-            initializePlayer(responseData.video_id, responseData.audio_data);
+            initializePlayer(responseData.video_id.split('?')[0], responseData.audio_data);
         } catch (error) {
             console.error('Çeviri işlemi sırasında hata:', error);
             hideLoading();
