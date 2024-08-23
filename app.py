@@ -239,4 +239,5 @@ async def read_root():
     return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860, log_level="info")
