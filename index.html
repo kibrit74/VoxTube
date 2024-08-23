@@ -274,13 +274,7 @@
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-   // YouTube IFrame API'sini yükle
-let tag = document.createElement('script');
-tag.src = "https://www.youtube.com/iframe_api";
-let firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-document.addEventListener('DOMContentLoaded', function() {
+   document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('translationForm');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const resultContainer = document.getElementById('result');
@@ -291,6 +285,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let player;
     let audioPlayer;
+    let isAudioPlaying = false;
+    let lastSyncTime = 0;
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -366,13 +362,39 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ses dosyası yüklenirken hata oluştu:', e);
             audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
         });
+
+        // Senkronizasyon kontrolü için interval
+        setInterval(syncAudioWithVideo, 100);
     }
 
     function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING && audioPlayer) {
-            audioPlayer.play();
-        } else if (event.data == YT.PlayerState.PAUSED && audioPlayer) {
+        if (event.data == YT.PlayerState.PLAYING) {
+            if (!isAudioPlaying) {
+                audioPlayer.play();
+                isAudioPlaying = true;
+            }
+        } else if (event.data == YT.PlayerState.PAUSED) {
             audioPlayer.pause();
+            isAudioPlaying = false;
+        }
+    }
+
+    function syncAudioWithVideo() {
+        if (player && player.getPlayerState() === YT.PlayerState.PLAYING && audioPlayer) {
+            const videoTime = player.getCurrentTime();
+            const audioTime = audioPlayer.currentTime;
+            
+            // Video zamanı değiştiyse (ileri/geri alındıysa)
+            if (Math.abs(videoTime - audioTime) > 0.5) {
+                audioPlayer.currentTime = videoTime;
+                console.log('Ses senkronize edildi:', videoTime);
+            }
+
+            // Ses çalınmıyorsa başlat
+            if (!isAudioPlaying) {
+                audioPlayer.play();
+                isAudioPlaying = true;
+            }
         }
     }
 
