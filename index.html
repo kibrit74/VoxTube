@@ -334,9 +334,9 @@
         const subtitlesContainer = document.getElementById('subtitlesContainer');
         const audioStatus = document.getElementById('audioStatus');
 
-        // Worker fonksiyonelliği buraya entegre edildi
         async function startTranslation(data) {
             try {
+                showLoading();
                 const response = await fetch('/translate', {
                     method: 'POST',
                     headers: {
@@ -346,7 +346,7 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Çeviri işlemi başarısız oldu');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const responseData = await response.json();
@@ -358,16 +358,17 @@
                 hideLoading();
                 showSuccess('Çeviri başarıyla tamamlandı!');
                 initializePlayer(responseData.video_id, responseData.audio_data, responseData.segments);
+                isTranslationStarted = true;
             } catch (error) {
+                console.error('Çeviri işlemi sırasında hata:', error);
                 hideLoading();
-                showError(error.message);
+                showError(`Çeviri işlemi sırasında bir hata oluştu: ${error.message}`);
             }
         }
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            showLoading();
             startTranslation(Object.fromEntries(formData));
         });
 
@@ -395,7 +396,6 @@
             
             audioPlayer.addEventListener('loadeddata', () => {
                 audioStatus.textContent = 'Ses dosyası yüklendi';
-                isTranslationStarted = true;
                 showControls();
             });
 
@@ -407,7 +407,7 @@
 
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
-                if (!isPlaying) {
+                if (!isPlaying && isTranslationStarted) {
                     audioPlayer.play();
                     isPlaying = true;
                 }
