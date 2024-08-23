@@ -33,13 +33,9 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         
-        h1, h2 {
-            color: var(--primary-color);
-        }
+        h1, h2 { color: var(--primary-color); }
         
-        form {
-            margin-bottom: 20px;
-        }
+        form { margin-bottom: 20px; }
         
         label {
             display: block;
@@ -66,17 +62,11 @@
             transition: background-color 0.3s ease;
         }
         
-        input[type="submit"]:hover {
-            background-color: #2980b9;
-        }
+        input[type="submit"]:hover { background-color: #2980b9; }
         
-        #result {
-            margin-top: 20px;
-        }
+        #result { margin-top: 20px; }
         
-        #videoContainer, #audioContainer {
-            margin-bottom: 10px;
-        }
+        #videoContainer, #audioContainer { margin-bottom: 10px; }
         
         button {
             background-color: var(--secondary-color);
@@ -93,18 +83,14 @@
             transition: background-color 0.3s ease;
         }
 
-        button:hover {
-            background-color: #27ae60;
-        }
+        button:hover { background-color: #27ae60; }
 
         button svg {
             width: 20px;
             height: 20px;
         }
 
-        #volumeControl, #syncControl {
-            width: 100%;
-        }
+        #volumeControl, #syncControl { width: 100%; }
 
         #subtitlesContainer {
             background-color: rgba(0, 0, 0, 0.7);
@@ -124,15 +110,8 @@
             text-align: center;
         }
 
-        #errorMessage {
-            background-color: var(--error-color);
-            color: white;
-        }
-
-        #successMessage {
-            background-color: var(--success-color);
-            color: white;
-        }
+        #errorMessage { background-color: var(--error-color); color: white; }
+        #successMessage { background-color: var(--success-color); color: white; }
 
         #loadingIndicator {
             display: none;
@@ -176,9 +155,7 @@
             height: 24px;
         }
 
-        .fade-in {
-            animation: fadeIn 0.5s;
-        }
+        .fade-in { animation: fadeIn 0.5s; }
 
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -186,28 +163,14 @@
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-
-            .video-container {
-                max-width: 100%;
-            }
-            
-            .video-container::before {
-                padding-top: 75%;
-            }
-
-            input[type="submit"], button {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-
+            .container { padding: 15px; }
+            .video-container { max-width: 100%; }
+            .video-container::before { padding-top: 75%; }
+            input[type="submit"], button { width: 100%; margin-bottom: 10px; }
             #controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-
             #controls button,
             #controls input[type="range"] {
                 width: 100%;
@@ -263,7 +226,7 @@
             
             <label for="transcript">Video Transkripti (YouTube formatı):</label>
             <textarea id="transcript" name="transcript" rows="10" required aria-describedby="transcriptHint"></textarea>
-            <small id="transcriptHint">Lütfen YouTube'dan kopyaladığınız transkripti olduğu gibi yapıştırın. Transkripti kopyalarken zaman damgasınıda kopyaladığınızdan emin olunuz. </small>
+            <small id="transcriptHint">Lütfen YouTube'dan kopyaladığınız transkripti olduğu gibi yapıştırın. Transkripti kopyalarken zaman damgasını da kopyaladığınızdan emin olunuz.</small>
             
             <input type="submit" value="Çeviriyi Başlat">
         </form>
@@ -285,7 +248,7 @@
                 <!-- Ses kontrolü buraya eklenecek -->
             </div>
             <p id="audioStatus" aria-live="polite"></p>
-            <div id="controls">
+            <div id="controls" style="display:none;">
                 <button id="playButton">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -310,7 +273,6 @@
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
-   
     <script>
    document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('translationForm');
@@ -320,9 +282,19 @@
     const successMessage = document.getElementById('successMessage');
     const videoContainer = document.getElementById('videoContainer');
     const audioStatus = document.getElementById('audioStatus');
+    const playButton = document.getElementById('playButton');
+    const pauseButton = document.getElementById('pauseButton');
+    const volumeControl = document.getElementById('volumeControl');
+    const syncControl = document.getElementById('syncControl');
+    const syncValue = document.getElementById('syncValue');
+    const subtitlesContainer = document.getElementById('subtitlesContainer');
+    const controls = document.getElementById('controls');
 
     let player;
     let audioPlayer;
+    let segments = [];
+    let isPlaying = false;
+    let syncOffset = 0;
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -348,14 +320,15 @@
             }
 
             const responseData = await response.json();
-            console.log('Sunucudan gelen veri:', responseData);
+            console.log('Sunucudan gelen veri:', JSON.stringify(responseData, null, 2));
 
-            if (!responseData.audio_data || !responseData.video_id) {
+            if (!responseData.audio_data || !responseData.video_id || !responseData.segments) {
                 throw new Error('Sunucudan geçersiz yanıt alındı');
             }
 
             hideLoading();
             showSuccess('Çeviri başarıyla tamamlandı!');
+            segments = responseData.segments;
             initializePlayer(responseData.video_id, responseData.audio_data);
         } catch (error) {
             console.error('Çeviri işlemi sırasında hata:', error);
@@ -365,7 +338,8 @@
     });
 
     function initializePlayer(videoId, audioData) {
-        console.log('Player başlatılıyor:', videoId);
+        console.log('Player başlatılıyor. Video ID:', videoId);
+        console.log('Audio data uzunluğu:', audioData.length);
         videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
         
         player = new YT.Player('youtubeVideo', {
@@ -373,7 +347,11 @@
             width: '640',
             videoId: videoId,
             events: {
-                'onReady': () => onPlayerReady(audioData),
+                'onReady': () => {
+                    console.log('YouTube Player hazır');
+                    onPlayerReady(audioData);
+                },
+                'onStateChange': onPlayerStateChange,
                 'onError': (e) => {
                     console.error('YouTube Player hatası:', e);
                     showError(`Video yüklenirken bir hata oluştu: ${e.data}`);
@@ -385,18 +363,80 @@
     function onPlayerReady(audioData) {
         console.log('YouTube Player hazır, ses yükleniyor');
         const audioBlob = base64ToBlob(audioData, 'audio/mpeg');
+        console.log('Audio Blob oluşturuldu. Boyut:', audioBlob.size);
         audioPlayer = new Audio(URL.createObjectURL(audioBlob));
         
         audioPlayer.addEventListener('loadeddata', () => {
             console.log('Ses dosyası yüklendi');
             audioStatus.textContent = 'Ses dosyası yüklendi';
             resultContainer.style.display = 'block';
+            controls.style.display = 'block';
         });
 
         audioPlayer.addEventListener('error', (e) => {
             console.error('Ses dosyası yüklenirken hata oluştu:', e);
             audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
         });
+    }
+
+    function onPlayerStateChange(event) {
+        console.log('Player durumu değişti:', event.data);
+        if (event.data == YT.PlayerState.PLAYING) {
+            if (!isPlaying) {
+                audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
+                audioPlayer.play();
+                isPlaying = true;
+            }
+        } else if (event.data == YT.PlayerState.PAUSED) {
+            audioPlayer.pause();
+            isPlaying = false;
+        }
+    }
+
+    playButton.addEventListener('click', () => {
+        if (player && audioPlayer) {
+            player.playVideo();
+        } else {
+            console.error('Player veya audio henüz hazır değil');
+        }
+    });
+
+    pauseButton.addEventListener('click', () => {
+        if (player && audioPlayer) {
+            player.pauseVideo();
+        } else {
+            console.error('Player veya audio henüz hazır değil');
+        }
+    });
+
+    volumeControl.addEventListener('input', (e) => {
+        if (audioPlayer) {
+            audioPlayer.volume = e.target.value;
+        }
+    });
+
+    syncControl.addEventListener('input', (e) => {
+        syncOffset = parseFloat(e.target.value);
+        syncValue.textContent = syncOffset.toFixed(1);
+        if (isPlaying && player && audioPlayer) {
+            audioPlayer.currentTime = player.getCurrentTime() + syncOffset;
+        }
+    });
+
+    setInterval(() => {
+        if (isPlaying && player && audioPlayer) {
+            const currentTime = player.getCurrentTime();
+            updateSubtitles(currentTime);
+        }
+    }, 100);
+
+    function updateSubtitles(currentTime) {
+        const currentSegment = segments.find(seg => seg.start <= currentTime && seg.end > currentTime);
+        if (currentSegment) {
+            subtitlesContainer.textContent = currentSegment.text;
+        } else {
+            subtitlesContainer.textContent = '';
+        }
     }
 
     function base64ToBlob(base64, mimeType) {
@@ -420,11 +460,12 @@
     }
 
     function showError(message) {
+        console.error('Hata:', message);
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
         setTimeout(() => {
             errorMessage.style.display = 'none';
-        }, 5000);
+        }, 10000);
     }
 
     function showSuccess(message) {
@@ -436,10 +477,9 @@
     }
 });
 
-// YouTube IFrame API hazır olduğunda çağrılacak fonksiyon
 function onYouTubeIframeAPIReady() {
     console.log('YouTube IFrame API hazır');
 }
-    </script>
+        </script>
 </body>
 </html>
