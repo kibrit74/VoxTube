@@ -312,195 +312,127 @@
     <script src="https://www.youtube.com/iframe_api"></script>
    
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const app = {
-        player: null,
-        audioPlayer: null,
-        segments: [],
-        isPlaying: false,
-        isTranslationReady: false,
-        syncOffset: 0,
+   document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('translationForm');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const resultContainer = document.getElementById('result');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const videoContainer = document.getElementById('videoContainer');
+    const audioStatus = document.getElementById('audioStatus');
 
-        elements: {
-            form: document.getElementById('translationForm'),
-            loadingIndicator: document.getElementById('loadingIndicator'),
-            resultContainer: document.getElementById('result'),
-            errorMessage: document.getElementById('errorMessage'),
-            successMessage: document.getElementById('successMessage'),
-            playButton: document.getElementById('playButton'),
-            pauseButton: document.getElementById('pauseButton'),
-            volumeControl: document.getElementById('volumeControl'),
-            syncControl: document.getElementById('syncControl'),
-            syncValue: document.getElementById('syncValue'),
-            subtitlesContainer: document.getElementById('subtitlesContainer'),
-            audioStatus: document.getElementById('audioStatus'),
-            videoContainer: document.getElementById('videoContainer')
-        },
+    let player;
+    let audioPlayer;
 
-        init() {
-            this.attachEventListeners();
-        },
-
-        attachEventListeners() {
-            this.elements.form.addEventListener('submit', this.handleFormSubmit.bind(this));
-            this.elements.playButton.addEventListener('click', this.handlePlay.bind(this));
-            this.elements.pauseButton.addEventListener('click', this.handlePause.bind(this));
-            this.elements.volumeControl.addEventListener('input', this.handleVolumeChange.bind(this));
-            this.elements.syncControl.addEventListener('input', this.handleSyncChange.bind(this));
-        },
-
-        async handleFormSubmit(e) {
-            e.preventDefault();
-            const formData = new FormData(this.elements.form);
-            console.log('Form gönderiliyor:', Object.fromEntries(formData));
-            await this.startTranslation(Object.fromEntries(formData));
-        },
-
-        async startTranslation(data) {
-            try {
-                console.log('Çeviri başlatılıyor:', data);
-                this.showLoading();
-                const response = await fetch('/translate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                console.log('Sunucu yanıtı:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const responseData = await response.json();
-                console.log('Sunucudan gelen veri:', responseData);
-                
-                if (!responseData.audio_data || !responseData.video_id || !responseData.segments) {
-                    throw new Error('Sunucudan geçersiz yanıt alındı');
-                }
-                
-                this.hideLoading();
-                this.showSuccess('Çeviri başarıyla tamamlandı!');
-                await this.initializePlayer(responseData.video_id, responseData.audio_data, responseData.segments);
-                this.isTranslationReady = true;
-            } catch (error) {
-                console.error('Çeviri işlemi sırasında hata:', error);
-                this.hideLoading();
-                this.showError(`Çeviri işlemi sırasında bir hata oluştu: ${error.message}`);
-            }
-        },
-
-        async initializePlayer(videoId, audioData, translatedSegments) {
-            console.log('Player başlatılıyor:', { videoId, audioDataLength: audioData.length, segmentsCount: translatedSegments.length });
-            this.segments = translatedSegments;
-            this.elements.videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
-            
-            return new Promise((resolve) => {
-                this.player = new YT.Player('youtubeVideo', {
-                    height: '360',
-                    width: '640',
-                    videoId: videoId,
-                    events: {
-                        'onReady': () => {
-                            console.log('YouTube Player hazır');
-                            this.onPlayerReady(audioData);
-                            resolve();
-                        },
-                        'onStateChange': this.onPlayerStateChange.bind(this),
-                        'onError': (e) => {
-                            console.error('YouTube Player hatası:', e);
-                            this.showError(`Video yüklenirken bir hata oluştu: ${e.data}`);
-                        }
-                    }
-                });
-            });
-        },
-
-        onPlayerReady(audioData) {
-            console.log('Player hazır, ses yükleniyor');
-            const audioBlob = this.base64ToBlob(audioData, 'audio/mpeg');
-            this.audioPlayer = new Audio(URL.createObjectURL(audioBlob));
-            
-            this.audioPlayer.addEventListener('loadeddata', () => {
-                this.elements.audioStatus.textContent = 'Ses dosyası yüklendi';
-                this.elements.resultContainer.style.display = 'block';
-                this.showControls();
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log('Form gönderiliyor');
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        
+        try {
+            showLoading();
+            const response = await fetch('/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
             });
 
-            this.audioPlayer.addEventListener('error', (e) => {
-                console.error('Ses dosyası yüklenirken hata oluştu:', e);
-                this.elements.audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
-            });
-        },
+            console.log('Sunucu yanıtı alındı:', response.status);
 
-        onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                if (!this.isPlaying && this.isTranslationReady) {
-                    this.audioPlayer.play();
-                    this.isPlaying = true;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log('Sunucudan gelen veri:', responseData);
+
+            if (!responseData.audio_data || !responseData.video_id) {
+                throw new Error('Sunucudan geçersiz yanıt alındı');
+            }
+
+            hideLoading();
+            showSuccess('Çeviri başarıyla tamamlandı!');
+            initializePlayer(responseData.video_id, responseData.audio_data);
+        } catch (error) {
+            console.error('Çeviri işlemi sırasında hata:', error);
+            hideLoading();
+            showError(`Çeviri işlemi sırasında bir hata oluştu: ${error.message}`);
+        }
+    });
+
+    function initializePlayer(videoId, audioData) {
+        console.log('Player başlatılıyor:', videoId);
+        videoContainer.innerHTML = `<div id="youtubeVideo"></div>`;
+        
+        player = new YT.Player('youtubeVideo', {
+            height: '360',
+            width: '640',
+            videoId: videoId,
+            events: {
+                'onReady': () => onPlayerReady(audioData),
+                'onError': (e) => {
+                    console.error('YouTube Player hatası:', e);
+                    showError(`Video yüklenirken bir hata oluştu: ${e.data}`);
                 }
-            } else if (event.data == YT.PlayerState.PAUSED) {
-                this.audioPlayer.pause();
-                this.isPlaying = false;
             }
-        },
+        });
+    }
 
-        handlePlay() {
-            if (!this.isTranslationReady) {
-                this.showError("Çeviri henüz hazır değil. Lütfen bekleyin.");
-                return;
-            }
-            if (this.player && this.audioPlayer) {
-                this.player.playVideo();
-                this.audioPlayer.currentTime = this.player.getCurrentTime() + this.syncOffset;
-                this.audioPlayer.play().catch(e => {
-                    console.error('Ses oynatma hatası:', e);
-                    this.showError("Ses oynatılırken bir hata oluştu. Lütfen sayfayı yenileyin ve tekrar deneyin.");
-                });
-                this.isPlaying = true;
-            } else {
-                this.showError("Video veya ses henüz yüklenmedi. Lütfen bekleyin.");
-            }
-        },
+    function onPlayerReady(audioData) {
+        console.log('YouTube Player hazır, ses yükleniyor');
+        const audioBlob = base64ToBlob(audioData, 'audio/mpeg');
+        audioPlayer = new Audio(URL.createObjectURL(audioBlob));
+        
+        audioPlayer.addEventListener('loadeddata', () => {
+            console.log('Ses dosyası yüklendi');
+            audioStatus.textContent = 'Ses dosyası yüklendi';
+            resultContainer.style.display = 'block';
+        });
 
-        handlePause() {
-            if (this.player && this.audioPlayer) {
-                this.player.pauseVideo();
-                this.audioPlayer.pause();
-                this.isPlaying = false;
-            }
-        },
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Ses dosyası yüklenirken hata oluştu:', e);
+            audioStatus.textContent = 'Ses dosyası yüklenemedi: ' + e.message;
+        });
+    }
 
-        handleVolumeChange(e) {
-            if (this.audioPlayer) {
-                this.audioPlayer.volume = e.target.value;
-            }
-        },
+    function base64ToBlob(base64, mimeType) {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], {type: mimeType});
+    }
 
-        handleSyncChange(e) {
-            this.syncOffset = parseFloat(e.target.value);
-            this.elements.syncValue.textContent = this.syncOffset.toFixed(1);
-            if (this.isPlaying && this.player && this.audioPlayer) {
-                this.audioPlayer.currentTime = this.player.getCurrentTime() + this.syncOffset;
-            }
-        },
+    function showLoading() {
+        loadingIndicator.style.display = 'block';
+        form.style.display = 'none';
+    }
 
-        // Diğer fonksiyonlar bir sonraki bölümde devam edecek...
-    };
+    function hideLoading() {
+        loadingIndicator.style.display = 'none';
+        form.style.display = 'block';
+    }
 
-    app.init();
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        setTimeout(() => {
+            errorMessage.style.display = 'none';
+        }, 5000);
+    }
 
-    // YouTube IFrame API'sinin yüklendiğini kontrol et
-    if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
-        console.log('YouTube IFrame API zaten yüklü');
-    } else {
-        // YouTube IFrame API'yi yükle
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    function showSuccess(message) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+        setTimeout(() => {
+            successMessage.style.display = 'none';
+        }, 3000);
     }
 });
 
@@ -508,6 +440,6 @@
 function onYouTubeIframeAPIReady() {
     console.log('YouTube IFrame API hazır');
 }
-</script>
+    </script>
 </body>
 </html>
